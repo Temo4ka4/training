@@ -182,7 +182,7 @@ async function registerUser(event) {
     setMessage($('authMessage'), 'Создаю аккаунт...', '');
     const usernameRef = usernameDoc(username);
     const usernameSnap = await usernameRef.get();
-    if (usernameSnap.exists()) throw new Error('Этот логин уже занят.');
+    if (usernameSnap.exists) throw new Error('Этот логин уже занят.');
 
     const credential = await auth.createUserWithEmailAndPassword(email, password);
     const uid = credential.user.uid;
@@ -231,7 +231,7 @@ async function loginUser(event) {
 
 async function ensureProfile(user) {
   const snap = await userDoc(user.uid).get();
-  if (snap.exists()) return;
+  if (snap.exists) return;
 
   const fallbackUsername = user.email?.split('@')[0] || `user_${user.uid.slice(0, 6)}`;
   await userDoc(user.uid).set({
@@ -260,7 +260,7 @@ async function ensureProfile(user) {
 function subscribeProfile() {
   if (unsubscribeProfile) unsubscribeProfile();
   unsubscribeProfile = userDoc().onSnapshot(async (snap) => {
-    if (!snap.exists()) return;
+    if (!snap.exists) return;
     currentProfile = { id: snap.id, ...snap.data() };
     renderAll();
 
@@ -309,7 +309,7 @@ async function markWorkout() {
     await db.runTransaction(async (transaction) => {
       const ref = userDoc();
       const snap = await transaction.get(ref);
-      if (!snap.exists()) throw new Error('Профиль не найден.');
+      if (!snap.exists) throw new Error('Профиль не найден.');
       const data = snap.data();
       const calendar = data.calendar || {};
       if (calendar[todayKey]) throw new Error('Сегодня тренировка уже отмечена.');
