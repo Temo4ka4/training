@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=4" />
+  <link rel="stylesheet" href="styles.css?v=5" />
 </head>
 <body>
   <div class="bg-glow bg-glow-one"></div>
@@ -19,6 +19,29 @@
       <div class="success-check">✓</div>
       <h3 id="successTitle">Готово</h3>
       <p id="successText">Действие выполнено успешно.</p>
+    </div>
+  </div>
+
+
+  <div id="dayClosedOverlay" class="modal-overlay hidden" aria-live="polite">
+    <div class="modal-card day-closed-card">
+      <div class="modal-icon">✅</div>
+      <h3>День закрыт</h3>
+      <p>Тренировка засчитана</p>
+      <div class="modal-stats">
+        <div><span>🔥 Стрик</span><strong id="closedStreakText">0 дней</strong></div>
+        <div><span>⏳ Осталось</span><strong id="closedDaysLeftText">—</strong></div>
+      </div>
+      <button id="hideDayClosedBtn" class="primary-btn" type="button">Скрыть</button>
+    </div>
+  </div>
+
+  <div id="achievementOverlay" class="modal-overlay achievement-overlay hidden" aria-live="polite">
+    <div class="modal-card achievement-popup-card">
+      <div class="modal-icon trophy-icon">🏅</div>
+      <p class="eyebrow">Достижение открыто</p>
+      <h3 id="achievementPopupTitle">Первая тренировка</h3>
+      <button id="hideAchievementBtn" class="ghost-btn" type="button">Круто</button>
     </div>
   </div>
 
@@ -131,6 +154,7 @@
             </span>
           </button>
           <p class="hold-help">Зажми круг на 3 секунды. Случайные клики больше не засчитываются.</p>
+          <div id="todayStatus" class="today-status">Сегодня ещё не закрыто. Удерживай кнопку, чтобы сохранить стрик.</div>
           <p id="homeMessage" class="message"></p>
         </div>
 
@@ -204,6 +228,21 @@
           <p id="profileMessage" class="message"></p>
         </div>
 
+
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>⚙️ Настройки</h3>
+            <p>Мелкие эффекты, чтобы сайт ощущался живее.</p>
+          </div>
+          <label class="setting-toggle">
+            <input id="soundToggle" type="checkbox" />
+            <span>
+              <strong>Лёгкий звук успеха</strong>
+              <small>Короткий сигнал после закрытия дня. Работает только после твоего действия.</small>
+            </span>
+          </label>
+        </div>
+
         <div class="glass-card section-card">
           <div class="section-title">
             <h3>🏁 Итоговые результаты</h3>
@@ -256,7 +295,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js?v=4"></script>
-  <script src="app.js?v=4"></script>
+  <script src="firebase-config.js?v=5"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

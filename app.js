@@ -137,6 +137,8 @@ let holdFrame = null;
 let holdStartedAt = 0;
 let holdCompleted = false;
 let workoutIsSubmitting = false;
+let soundEnabled = localStorage.getItem('challengeSoundEnabled') === 'true';
+let achievementPopupTimer = null;
 
 const $ = (id) => document.getElementById(id);
 const authScreen = $('authScreen');
@@ -250,15 +252,69 @@ function runConfetti() {
   }
 }
 
-function celebrateWorkout() {
+function playSuccessSound() {
+  if (!soundEnabled) return;
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.055, now + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+    gain.connect(ctx.destination);
+
+    [523.25, 659.25, 783.99].forEach((freq, index) => {
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + index * 0.075);
+      osc.connect(gain);
+      osc.start(now + index * 0.075);
+      osc.stop(now + 0.34 + index * 0.04);
+    });
+    window.setTimeout(() => ctx.close?.(), 700);
+  } catch (_) {}
+}
+
+function achievementTitleById(id) {
+  return ACHIEVEMENTS.find((a) => a.id === id)?.title || 'Новое достижение';
+}
+
+function showAchievementPopup(achievementId) {
+  const overlay = $('achievementOverlay');
+  if (!overlay) return;
+  $('achievementPopupTitle').textContent = achievementTitleById(achievementId).replace(/^🏅\s*/, '');
+  overlay.classList.remove('hidden');
+  runConfetti();
+  if (achievementPopupTimer) window.clearTimeout(achievementPopupTimer);
+  achievementPopupTimer = window.setTimeout(() => overlay.classList.add('hidden'), 4500);
+}
+
+function showDayClosedModal(stats) {
+  const overlay = $('dayClosedOverlay');
+  if (!overlay) return;
+  const streak = stats?.streak || 0;
+  const left = daysLeftAfterToday();
+  $('closedStreakText').textContent = `${streak} ${plural(streak, ['день', 'дня', 'дней'])}`;
+  $('closedDaysLeftText').textContent = `${left} ${plural(left, ['день', 'дня', 'дней'])}`;
+  overlay.classList.remove('hidden');
+}
+
+function celebrateWorkout(stats, newAchievements = []) {
   const btn = $('markWorkoutBtn');
   if (btn) {
     btn.classList.remove('success-bounce');
     void btn.offsetWidth;
     btn.classList.add('success-bounce');
   }
-  showSuccessOverlay('Тренировка засчитана', 'Красавчик. Один день ближе к цели.');
-  showToast('Тренировка отмечена', 'ok');
+  runConfetti();
+  playSuccessSound();
+  showToast('День закрыт. Тренировка засчитана', 'ok');
+  window.setTimeout(() => showDayClosedModal(stats), 520);
+  newAchievements.forEach((id, index) => {
+    window.setTimeout(() => showAchievementPopup(id), 900 + index * 900);
+  });
 }
 
 function sanitizeUsername(username) {
@@ -532,6 +588,8 @@ async function markWorkout() {
   }
 
   const todayKey = toDateKey(today);
+  let resultStats = null;
+  let newAchievements = [];
   try {
     await db.runTransaction(async (transaction) => {
       const ref = userDoc();
@@ -548,10 +606,13 @@ async function markWorkout() {
       };
       const stats = calcStats(updated);
       const achievements = calculateAchievements({ ...updated, ...stats });
+      const oldAchievements = new Set(data.achievements || []);
+      newAchievements = achievements.filter((id) => !oldAchievements.has(id));
+      resultStats = stats;
       transaction.update(ref, { calendar: updated.calendar, lastWorkoutDate: todayKey, ...stats, achievements });
     });
-    setMessage($('homeMessage'), 'Тренировка отмечена. Не сбавляй темп.', 'ok');
-    celebrateWorkout();
+    setMessage($('homeMessage'), 'День в безопасности. Стрик сохранён.', 'ok');
+    celebrateWorkout(resultStats, newAchievements);
   } catch (error) {
     const message = error.message || readableFirebaseError(error);
     setMessage($('homeMessage'), message, 'error');
@@ -571,9 +632,12 @@ async function saveProfile(event) {
   try {
     const temp = { ...currentProfile, currentWeight, height, goal };
     const achievements = calculateAchievements(temp);
+    const oldAchievements = new Set(currentProfile.achievements || []);
+    const newAchievements = achievements.filter((id) => !oldAchievements.has(id));
     await userDoc().update({ currentWeight, height, goal, achievements });
     setMessage($('profileMessage'), 'Данные сохранены.', 'ok');
     showToast('Данные профиля сохранены', 'ok');
+    newAchievements.forEach((id, index) => window.setTimeout(() => showAchievementPopup(id), 350 + index * 850));
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
   }
@@ -586,8 +650,11 @@ async function saveFinal(event) {
   try {
     const temp = { ...currentProfile, finalWeight, finalHeight };
     const achievements = calculateAchievements(temp);
+    const oldAchievements = new Set(currentProfile.achievements || []);
+    const newAchievements = achievements.filter((id) => !oldAchievements.has(id));
     await userDoc().update({ finalWeight, finalHeight, achievements });
     showSuccessOverlay('Итог сохранён', 'Финальные показатели записаны.');
+    newAchievements.forEach((id, index) => window.setTimeout(() => showAchievementPopup(id), 450 + index * 850));
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
   }
@@ -608,7 +675,11 @@ function renderHome() {
   const left = daysLeftAfterToday();
   $('summerDayText').textContent = `День ${challengeDay} из 90`;
   $('progressCount').textContent = stats.progress;
-  $('progressFill').style.width = `${Math.min(stats.percent, 100)}%`;
+  const fill = $('progressFill');
+  fill.classList.remove('progress-pop');
+  void fill.offsetWidth;
+  fill.style.width = `${Math.min(stats.percent, 100)}%`;
+  fill.classList.add('progress-pop');
   $('streakText').textContent = `${stats.streak} ${plural(stats.streak, ['день', 'дня', 'дней'])}`;
   $('workoutsText').textContent = stats.workoutsCount;
   $('percentText').textContent = `${stats.percent}%`;
@@ -618,18 +689,22 @@ function renderHome() {
 
   const already = Boolean(currentProfile.calendar?.[toDateKey()]);
   const btn = $('markWorkoutBtn');
+  const checkCard = document.querySelector('.check-card');
   btn.disabled = already || workoutIsSubmitting;
   btn.classList.toggle('is-done', already);
+  checkCard?.classList.toggle('safe-day', already);
 
   if (already) {
     setWorkoutHoldProgress(100);
     if ($('workoutActionText')) $('workoutActionText').textContent = '✅ Выполнено сегодня';
-    if ($('workoutHintText')) $('workoutHintText').textContent = 'Стрик в безопасности. Возвращайся завтра.';
+    if ($('workoutHintText')) $('workoutHintText').textContent = 'День в безопасности';
+    if ($('todayStatus')) $('todayStatus').innerHTML = '<strong>✅ День в безопасности</strong><span>Стрик сохранён. Возвращайся завтра и не сливай ритм.</span>';
     setMessage($('homeMessage'), 'Сегодня тренировка уже отмечена.', 'ok');
   } else {
     setWorkoutHoldProgress(0);
     if ($('workoutActionText')) $('workoutActionText').textContent = 'Удерживай 3 сек';
     if ($('workoutHintText')) $('workoutHintText').textContent = 'Отметить тренировку';
+    if ($('todayStatus')) $('todayStatus').innerHTML = '<strong>Сегодня ещё не закрыто</strong><span>Удерживай кнопку 3 секунды, чтобы сохранить стрик.</span>';
     if ($('homeMessage')?.textContent === 'Сегодня тренировка уже отмечена.') setMessage($('homeMessage'), '', '');
   }
 }
@@ -750,8 +825,21 @@ function renderAchievements() {
   ACHIEVEMENTS.forEach((a) => {
     const item = document.createElement('div');
     item.className = `achievement ${unlocked.has(a.id) ? 'unlocked' : ''}`;
+    item.dataset.achievementId = a.id;
     item.textContent = a.title;
     root.appendChild(item);
+  });
+}
+
+
+function setupSoundToggle() {
+  const toggle = $('soundToggle');
+  if (!toggle) return;
+  toggle.checked = soundEnabled;
+  toggle.addEventListener('change', () => {
+    soundEnabled = toggle.checked;
+    localStorage.setItem('challengeSoundEnabled', String(soundEnabled));
+    showToast(soundEnabled ? 'Звук успеха включён' : 'Звук успеха выключен', 'ok');
   });
 }
 
@@ -824,7 +912,12 @@ $('markWorkoutBtn').addEventListener('keyup', (event) => {
 });
 $('profileForm').addEventListener('submit', saveProfile);
 $('finalForm').addEventListener('submit', saveFinal);
+$('hideDayClosedBtn')?.addEventListener('click', () => $('dayClosedOverlay')?.classList.add('hidden'));
+$('hideAchievementBtn')?.addEventListener('click', () => $('achievementOverlay')?.classList.add('hidden'));
+$('dayClosedOverlay')?.addEventListener('click', (event) => { if (event.target.id === 'dayClosedOverlay') event.currentTarget.classList.add('hidden'); });
+$('achievementOverlay')?.addEventListener('click', (event) => { if (event.target.id === 'achievementOverlay') event.currentTarget.classList.add('hidden'); });
 setupTabs();
+setupSoundToggle();
 
 if (auth) {
 auth.onAuthStateChanged(async (user) => {
