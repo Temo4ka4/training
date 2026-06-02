@@ -1,30 +1,22 @@
-import { firebaseConfig } from './firebase-config.js';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js';
-import {
-  getAuth,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged
-} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js';
-import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  collection,
-  query,
-  orderBy,
-  limit,
-  onSnapshot,
-  serverTimestamp,
-  runTransaction
-} from 'https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js';
+const firebaseConfig = window.firebaseConfig || {};
+const isFirebaseConfigReady = firebaseConfig.apiKey && !String(firebaseConfig.apiKey).includes('PASTE_');
+let app = null;
+let auth = null;
+let db = null;
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+try {
+  if (!window.firebase) {
+    throw new Error('Firebase SDK не загрузился. Проверь интернет, расширения браузера или блокировку gstatic.com.');
+  }
+  if (!isFirebaseConfigReady) {
+    throw new Error('Firebase config не заполнен. Открой firebase-config.js и вставь данные из Firebase Console.');
+  }
+  app = firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+} catch (error) {
+  console.error(error);
+}
 
 const START_MONTH = 5; // Июнь, месяцы в JS: 0-11
 const START_DAY = 1;
@@ -164,15 +156,16 @@ function calculateAchievements(profile) {
 }
 
 function userDoc(uid = currentUser?.uid) {
-  return doc(db, 'users', uid);
+  return db.collection('users').doc(uid);
 }
 
 function usernameDoc(username) {
-  return doc(db, 'usernames', username.toLowerCase());
+  return db.collection('usernames').doc(username.toLowerCase());
 }
 
 async function registerUser(event) {
   event.preventDefault();
+  if (!auth || !db) { setMessage($('authMessage'), 'Firebase не подключён. Проверь firebase-config.js.', 'error'); return; }
   const username = sanitizeUsername($('registerUsername').value);
   const email = $('registerEmail').value.trim();
   const password = $('registerPassword').value;
@@ -188,16 +181,16 @@ async function registerUser(event) {
   try {
     setMessage($('authMessage'), 'Создаю аккаунт...', '');
     const usernameRef = usernameDoc(username);
-    const usernameSnap = await getDoc(usernameRef);
+    const usernameSnap = await usernameRef.get();
     if (usernameSnap.exists()) throw new Error('Этот логин уже занят.');
 
-    const credential = await createUserWithEmailAndPassword(auth, email, password);
+    const credential = await auth.createUserWithEmailAndPassword(email, password);
     const uid = credential.user.uid;
     const profile = {
       uid,
       username,
       email,
-      createdAt: serverTimestamp(),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       height,
       startHeight: height,
       startWeight,
@@ -215,8 +208,8 @@ async function registerUser(event) {
       calendar: {}
     };
 
-    await setDoc(userDoc(uid), profile);
-    await setDoc(usernameRef, { uid, username, createdAt: serverTimestamp() });
+    await userDoc(uid).set(profile);
+    await usernameRef.set({ uid, username, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
     setMessage($('authMessage'), 'Аккаунт создан. Вход выполнен.', 'ok');
   } catch (error) {
     setMessage($('authMessage'), readableFirebaseError(error), 'error');
@@ -225,26 +218,27 @@ async function registerUser(event) {
 
 async function loginUser(event) {
   event.preventDefault();
+  if (!auth) { setMessage($('authMessage'), 'Firebase не подключён. Проверь firebase-config.js.', 'error'); return; }
   const email = $('loginEmail').value.trim();
   const password = $('loginPassword').value;
   try {
     setMessage($('authMessage'), 'Вхожу...', '');
-    await signInWithEmailAndPassword(auth, email, password);
+    await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     setMessage($('authMessage'), readableFirebaseError(error), 'error');
   }
 }
 
 async function ensureProfile(user) {
-  const snap = await getDoc(userDoc(user.uid));
+  const snap = await userDoc(user.uid).get();
   if (snap.exists()) return;
 
   const fallbackUsername = user.email?.split('@')[0] || `user_${user.uid.slice(0, 6)}`;
-  await setDoc(userDoc(user.uid), {
+  await userDoc(user.uid).set({
     uid: user.uid,
     username: fallbackUsername,
     email: user.email || '',
-    createdAt: serverTimestamp(),
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
     height: null,
     startHeight: null,
     startWeight: null,
@@ -265,7 +259,7 @@ async function ensureProfile(user) {
 
 function subscribeProfile() {
   if (unsubscribeProfile) unsubscribeProfile();
-  unsubscribeProfile = onSnapshot(userDoc(), async (snap) => {
+  unsubscribeProfile = userDoc().onSnapshot(async (snap) => {
     if (!snap.exists()) return;
     currentProfile = { id: snap.id, ...snap.data() };
     renderAll();
@@ -280,15 +274,15 @@ function subscribeProfile() {
       achievements.join('|') !== (currentProfile.achievements || []).join('|');
 
     if (needsSync) {
-      await updateDoc(userDoc(), { ...stats, achievements });
+      await userDoc().update({ ...stats, achievements });
     }
   });
 }
 
 function subscribeLeaderboard() {
   if (unsubscribeLeaderboard) unsubscribeLeaderboard();
-  const q = query(collection(db, 'users'), orderBy('workoutsCount', 'desc'), limit(50));
-  unsubscribeLeaderboard = onSnapshot(q, (snapshot) => {
+  const q = db.collection('users').orderBy('workoutsCount', 'desc').limit(50);
+  unsubscribeLeaderboard = q.onSnapshot((snapshot) => {
     leaderboardCache = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
     renderLeaderboard();
     renderProfileStats();
@@ -312,7 +306,7 @@ async function markWorkout() {
 
   const todayKey = toDateKey(today);
   try {
-    await runTransaction(db, async (transaction) => {
+    await db.runTransaction(async (transaction) => {
       const ref = userDoc();
       const snap = await transaction.get(ref);
       if (!snap.exists()) throw new Error('Профиль не найден.');
@@ -343,7 +337,7 @@ async function saveProfile(event) {
   try {
     const temp = { ...currentProfile, currentWeight, height, goal };
     const achievements = calculateAchievements(temp);
-    await updateDoc(userDoc(), { currentWeight, height, goal, achievements });
+    await userDoc().update({ currentWeight, height, goal, achievements });
     setMessage($('profileMessage'), 'Данные сохранены.', 'ok');
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
@@ -357,7 +351,7 @@ async function saveFinal(event) {
   try {
     const temp = { ...currentProfile, finalWeight, finalHeight };
     const achievements = calculateAchievements(temp);
-    await updateDoc(userDoc(), { finalWeight, finalHeight, achievements });
+    await userDoc().update({ finalWeight, finalHeight, achievements });
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
   }
@@ -560,13 +554,14 @@ function readableFirebaseError(error) {
 
 $('registerForm').addEventListener('submit', registerUser);
 $('loginForm').addEventListener('submit', loginUser);
-$('logoutBtn').addEventListener('click', () => signOut(auth));
+$('logoutBtn').addEventListener('click', () => auth && auth.signOut());
 $('markWorkoutBtn').addEventListener('click', markWorkout);
 $('profileForm').addEventListener('submit', saveProfile);
 $('finalForm').addEventListener('submit', saveFinal);
 setupTabs();
 
-onAuthStateChanged(auth, async (user) => {
+if (auth) {
+auth.onAuthStateChanged(async (user) => {
   currentUser = user;
   if (!user) {
     currentProfile = null;
@@ -582,3 +577,12 @@ onAuthStateChanged(auth, async (user) => {
   subscribeProfile();
   subscribeLeaderboard();
 });
+} else {
+  window.addEventListener('DOMContentLoaded', () => {
+    const msg = document.getElementById('authMessage');
+    if (msg) {
+      msg.textContent = 'Firebase не подключён. Проверь firebase-config.js и доступ к gstatic.com.';
+      msg.className = 'message error';
+    }
+  });
+}

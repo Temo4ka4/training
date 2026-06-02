@@ -1,4 +1,4 @@
-const firebaseConfig = {
+window.firebaseConfig = {
   apiKey: "AIzaSyBk_piFC84egeBDEfneTFI-N-0FiJfViOQ",
   authDomain: "days-challenge-c332b.firebaseapp.com",
   projectId: "days-challenge-c332b",
