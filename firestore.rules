@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // Для таблицы лидеров все авторизованные пользователи могут читать профили.
+      // Для маленького приватного челленджа 2-20 человек это нормально.
+      allow read: if signedIn();
+      allow create: if isOwner(uid);
+      allow update: if isOwner(uid);
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow read: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.username is string;
+      allow update, delete: if false;
+    }
+  }
+}

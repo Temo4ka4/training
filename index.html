@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>90 Days Challenge</title>
+  <meta name="description" content="90 Days Challenge — отслеживание тренировок за лето" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-one"></div>
+  <div class="bg-glow bg-glow-two"></div>
+
+  <main class="app-shell">
+    <section id="authScreen" class="auth-screen">
+      <div class="brand-card glass-card">
+        <div class="logo-mark">90</div>
+        <div>
+          <h1>90 Days Challenge</h1>
+          <p>Тренировки. Стрик. Рейтинг. Лето под контролем.</p>
+        </div>
+      </div>
+
+      <div class="auth-card glass-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" data-auth-tab="login">Войти</button>
+          <button class="auth-tab" data-auth-tab="register">Регистрация</button>
+        </div>
+
+        <form id="loginForm" class="auth-form active">
+          <label>
+            <span>Логин</span>
+            <input id="loginUsername" type="text" placeholder="Temo4ka4" autocomplete="username" />
+          </label>
+          <label>
+            <span>Почта</span>
+            <input id="loginEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="loginPassword" type="password" placeholder="••••••••" autocomplete="current-password" required />
+          </label>
+          <button class="primary-btn" type="submit">Войти</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+          <label>
+            <span>Логин</span>
+            <input id="registerUsername" type="text" placeholder="Temo4ka4" autocomplete="username" required minlength="3" maxlength="20" />
+          </label>
+          <label>
+            <span>Почта</span>
+            <input id="registerEmail" type="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="registerPassword" type="password" placeholder="Минимум 6 символов" autocomplete="new-password" required minlength="6" />
+          </label>
+          <div class="grid-2">
+            <label>
+              <span>Рост, см</span>
+              <input id="registerHeight" type="number" min="80" max="250" placeholder="175" />
+            </label>
+            <label>
+              <span>Вес, кг</span>
+              <input id="registerWeight" type="number" min="20" max="250" step="0.1" placeholder="62" />
+            </label>
+          </div>
+          <label>
+            <span>Цель на лето</span>
+            <input id="registerGoal" type="text" placeholder="Набрать 5 кг массы" maxlength="80" />
+          </label>
+          <button class="primary-btn" type="submit">Зарегистрироваться</button>
+        </form>
+
+        <p id="authMessage" class="message"></p>
+      </div>
+    </section>
+
+    <section id="mainApp" class="main-app hidden">
+      <header class="top-header glass-card">
+        <div>
+          <p class="eyebrow">training.temo4ka4.ru</p>
+          <h2>90 Days Challenge</h2>
+        </div>
+        <button id="logoutBtn" class="ghost-btn">Выйти</button>
+      </header>
+
+      <section id="tabHome" class="tab-page active">
+        <div class="hero-card glass-card">
+          <div class="hero-top">
+            <div>
+              <p class="eyebrow">Прогресс лета</p>
+              <h3 id="summerDayText">День 1 из 90</h3>
+            </div>
+            <div class="progress-number"><span id="progressCount">0</span>/90</div>
+          </div>
+          <div class="progress-bar"><div id="progressFill"></div></div>
+          <div class="stats-row">
+            <div class="stat-box"><span>🔥 Стрик</span><strong id="streakText">0 дней</strong></div>
+            <div class="stat-box"><span>💪 Всего</span><strong id="workoutsText">0</strong></div>
+            <div class="stat-box"><span>🎯 Выполнено</span><strong id="percentText">0%</strong></div>
+          </div>
+        </div>
+
+        <div class="check-card glass-card">
+          <button id="markWorkoutBtn" class="workout-btn">
+            <span class="pulse-ring"></span>
+            <span class="check-icon">✅</span>
+            <span>Отметить тренировку</span>
+          </button>
+          <p id="homeMessage" class="message"></p>
+        </div>
+
+        <div class="calendar-card glass-card">
+          <div class="section-title">
+            <h3>Календарь активности</h3>
+            <p>Зелёный — сделал, красный — пропустил, серый — ещё не наступило.</p>
+          </div>
+          <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+      </section>
+
+      <section id="tabTop" class="tab-page">
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>🏆 Топ участников</h3>
+            <p>Сортировка по количеству тренировок. Рейтинг обновляется автоматически.</p>
+          </div>
+          <div id="leaderboardList" class="leaderboard-list"></div>
+        </div>
+      </section>
+
+      <section id="tabProfile" class="tab-page">
+        <div class="profile-grid">
+          <div class="glass-card profile-card">
+            <div class="avatar" id="profileAvatar">T</div>
+            <h3 id="profileUsername">Username</h3>
+            <p id="profileCreated">Дата регистрации: —</p>
+          </div>
+
+          <div class="glass-card section-card">
+            <div class="section-title">
+              <h3>👤 Профиль</h3>
+              <p>Начальные показатели сохраняются как точка старта.</p>
+            </div>
+            <div class="info-list">
+              <div><span>Начальный рост</span><strong id="startHeightInfo">—</strong></div>
+              <div><span>Текущий рост</span><strong id="heightInfo">—</strong></div>
+              <div><span>Начальный вес</span><strong id="startWeightInfo">—</strong></div>
+              <div><span>Текущий вес</span><strong id="currentWeightInfo">—</strong></div>
+              <div><span>Финальный рост</span><strong id="finalHeightInfo">—</strong></div>
+              <div><span>Финальный вес</span><strong id="finalWeightInfo">—</strong></div>
+              <div><span>Цель</span><strong id="goalInfo">—</strong></div>
+              <div><span>Последняя тренировка</span><strong id="lastWorkoutInfo">—</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>✏️ Изменить данные</h3>
+            <p>Менять можно текущий вес, текущий рост и цель.</p>
+          </div>
+          <form id="profileForm" class="profile-form">
+            <div class="grid-3">
+              <label>
+                <span>Текущий вес, кг</span>
+                <input id="currentWeightInput" type="number" min="20" max="250" step="0.1" />
+              </label>
+              <label>
+                <span>Текущий рост, см</span>
+                <input id="currentHeightInput" type="number" min="80" max="250" step="0.1" />
+              </label>
+              <label>
+                <span>Цель на лето</span>
+                <input id="goalInput" type="text" maxlength="80" />
+              </label>
+            </div>
+            <button class="primary-btn" type="submit">Сохранить</button>
+          </form>
+          <p id="profileMessage" class="message"></p>
+        </div>
+
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>🏁 Итоговые результаты</h3>
+            <p>После 29 августа можно зафиксировать финальный результат.</p>
+          </div>
+          <form id="finalForm" class="profile-form">
+            <div class="grid-2">
+              <label>
+                <span>Финальный вес, кг</span>
+                <input id="finalWeightInput" type="number" min="20" max="250" step="0.1" />
+              </label>
+              <label>
+                <span>Финальный рост, см</span>
+                <input id="finalHeightInput" type="number" min="80" max="250" step="0.1" />
+              </label>
+            </div>
+            <button class="primary-btn" type="submit">Сохранить итог</button>
+          </form>
+          <div id="resultsBox" class="results-box"></div>
+        </div>
+
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>📊 Дополнительная статистика</h3>
+          </div>
+          <div class="stats-row wrap">
+            <div class="stat-box"><span>Лучший стрик</span><strong id="bestStreakInfo">0</strong></div>
+            <div class="stat-box"><span>Пропущено</span><strong id="missedDaysInfo">0</strong></div>
+            <div class="stat-box"><span>Процент</span><strong id="profilePercentInfo">0%</strong></div>
+            <div class="stat-box"><span>Место</span><strong id="rankInfo">—</strong></div>
+          </div>
+        </div>
+
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h3>🏅 Достижения</h3>
+          </div>
+          <div id="achievementsList" class="achievements-list"></div>
+        </div>
+      </section>
+
+      <nav class="bottom-nav glass-card">
+        <button class="nav-btn active" data-tab="Home"><span>🏠</span>Главное</button>
+        <button class="nav-btn" data-tab="Top"><span>🏆</span>Топ</button>
+        <button class="nav-btn" data-tab="Profile"><span>👤</span>Профиль</button>
+      </nav>
+    </section>
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
