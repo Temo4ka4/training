@@ -37,6 +37,7 @@ let currentProfile = null;
 let leaderboardCache = [];
 let unsubscribeProfile = null;
 let unsubscribeLeaderboard = null;
+let pendingAuthSuccess = null;
 
 const $ = (id) => document.getElementById(id);
 const authScreen = $('authScreen');
@@ -96,8 +97,57 @@ function numberOrNull(value) {
 }
 
 function setMessage(el, text, type = '') {
+  if (!el) return;
   el.textContent = text;
   el.className = `message ${type}`.trim();
+}
+
+function showToast(text, type = 'ok') {
+  const root = $('toastContainer');
+  if (!root || !text) return;
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span class="toast-icon">${type === 'error' ? '!' : '✓'}</span><span>${escapeHtml(text)}</span>`;
+  root.appendChild(toast);
+  window.setTimeout(() => {
+    toast.style.animation = 'toastOut .22s ease forwards';
+    window.setTimeout(() => toast.remove(), 240);
+  }, 3200);
+}
+
+function showSuccessOverlay(title, text) {
+  const overlay = $('successOverlay');
+  if (!overlay) return;
+  $('successTitle').textContent = title;
+  $('successText').textContent = text;
+  overlay.classList.remove('hidden');
+  runConfetti();
+  window.setTimeout(() => overlay.classList.add('hidden'), 1350);
+}
+
+function runConfetti() {
+  const colors = ['#58f29b', '#5fc8f8', '#ffffff', '#ffd166', '#ff5f6d'];
+  for (let i = 0; i < 34; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = `${Math.random() * 100}vw`;
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = `${Math.random() * 0.18}s`;
+    piece.style.transform = `rotate(${Math.random() * 180}deg)`;
+    document.body.appendChild(piece);
+    window.setTimeout(() => piece.remove(), 1500);
+  }
+}
+
+function celebrateWorkout() {
+  const btn = $('markWorkoutBtn');
+  if (btn) {
+    btn.classList.remove('success-bounce');
+    void btn.offsetWidth;
+    btn.classList.add('success-bounce');
+  }
+  showSuccessOverlay('Тренировка засчитана', 'Красавчик. Один день ближе к цели.');
+  showToast('Тренировка отмечена', 'ok');
 }
 
 function sanitizeUsername(username) {
@@ -184,6 +234,7 @@ async function registerUser(event) {
     const usernameSnap = await usernameRef.get();
     if (usernameSnap.exists) throw new Error('Этот логин уже занят.');
 
+    pendingAuthSuccess = { title: 'Аккаунт создан', text: 'Вход выполнен. Теперь не сливай стрик.' };
     const credential = await auth.createUserWithEmailAndPassword(email, password);
     const uid = credential.user.uid;
     const profile = {
@@ -223,6 +274,7 @@ async function loginUser(event) {
   const password = $('loginPassword').value;
   try {
     setMessage($('authMessage'), 'Вхожу...', '');
+    pendingAuthSuccess = { title: 'Успешный вход', text: 'Добро пожаловать обратно. Пора работать.' };
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     setMessage($('authMessage'), readableFirebaseError(error), 'error');
@@ -324,8 +376,11 @@ async function markWorkout() {
       transaction.update(ref, { calendar: updated.calendar, lastWorkoutDate: todayKey, ...stats, achievements });
     });
     setMessage($('homeMessage'), 'Тренировка отмечена. Не сбавляй темп.', 'ok');
+    celebrateWorkout();
   } catch (error) {
-    setMessage($('homeMessage'), error.message || readableFirebaseError(error), 'error');
+    const message = error.message || readableFirebaseError(error);
+    setMessage($('homeMessage'), message, 'error');
+    showToast(message, 'error');
   }
 }
 
@@ -339,6 +394,7 @@ async function saveProfile(event) {
     const achievements = calculateAchievements(temp);
     await userDoc().update({ currentWeight, height, goal, achievements });
     setMessage($('profileMessage'), 'Данные сохранены.', 'ok');
+    showToast('Данные профиля сохранены', 'ok');
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
   }
@@ -352,6 +408,7 @@ async function saveFinal(event) {
     const temp = { ...currentProfile, finalWeight, finalHeight };
     const achievements = calculateAchievements(temp);
     await userDoc().update({ finalWeight, finalHeight, achievements });
+    showSuccessOverlay('Итог сохранён', 'Финальные показатели записаны.');
   } catch (error) {
     setMessage($('profileMessage'), readableFirebaseError(error), 'error');
   }
@@ -405,7 +462,10 @@ function renderCalendar() {
       const cell = document.createElement('div');
       cell.className = 'day-cell';
       cell.textContent = day;
-      if (calendar[key]) cell.classList.add('done');
+      if (calendar[key]) {
+        cell.classList.add('done');
+        if (key === todayKey) cell.classList.add('just-done');
+      }
       else if (key > todayKey) cell.classList.add('future');
       else cell.classList.add('missed');
       grid.appendChild(cell);
@@ -574,6 +634,11 @@ auth.onAuthStateChanged(async (user) => {
   await ensureProfile(user);
   authScreen.classList.add('hidden');
   mainApp.classList.remove('hidden');
+  if (pendingAuthSuccess) {
+    showSuccessOverlay(pendingAuthSuccess.title, pendingAuthSuccess.text);
+    showToast(pendingAuthSuccess.title, 'ok');
+    pendingAuthSuccess = null;
+  }
   subscribeProfile();
   subscribeLeaderboard();
 });
