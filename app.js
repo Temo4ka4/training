@@ -21,6 +21,100 @@ try {
 const START_MONTH = 5; // Июнь, месяцы в JS: 0-11
 const START_DAY = 1;
 const TOTAL_DAYS = 90;
+const HOLD_DURATION_MS = 3000;
+const MOTIVATION_PHRASES = [
+  'Сегодня не нужно быть идеальным. Нужно просто не пропустить.',
+  'Один закрытый день сильнее десяти обещаний.',
+  'Тело меняется не от планов, а от повторений.',
+  'Сделай минимум, но сделай. Стрик важнее настроения.',
+  'Ты не обязан хотеть тренировку. Ты обязан прийти и начать.',
+  'Лень проходит. Выполненный день остаётся.',
+  'Не ищи мотивацию. Создай доказательство, что ты держишь слово.',
+  'Сегодняшняя тренировка — кирпич в результат августа.',
+  'Не сливай день из-за настроения на пару часов.',
+  'Сильные становятся сильными не в удобные дни.',
+  'Три секунды удержания — и день закрыт. Всё просто.',
+  'Пока другие откладывают, ты собираешь стрик.',
+  'Твой прогресс не шумный. Он ежедневный.',
+  'Не геройствуй. Просто сделай свою норму.',
+  'Один день пропуска легко превращается в неделю. Не открывай эту дверь.',
+  'Закрой день сейчас, а не когда появится желание.',
+  'Челлендж выигрывают скучной дисциплиной.',
+  'Сегодня ты либо укрепляешь привычку, либо кормишь отмазку.',
+  'Маленькая тренировка лучше большого нуля.',
+  'Твоё будущее тело смотрит на сегодняшний выбор.',
+  'Если устал — сделай легче, но не пропускай.',
+  'Стрик — это репутация перед самим собой.',
+  'Не обсуждай тренировку. Выполни её.',
+  'Каждый зелёный день делает следующий проще.',
+  'Сейчас важен не рекорд. Сейчас важна непрерывность.',
+  'Пропуск не отдых, если он ломает систему.',
+  'Делай так, чтобы завтра было стыдно не продолжить.',
+  'Сначала действие. Потом настроение подтянется.',
+  'Сегодня ты платишь маленькую цену за большой результат.',
+  'Усталость не отменяет цель. Она проверяет её.',
+  'Не делай идеально. Делай стабильно.',
+  'День без тренировки — это голос слабой версии тебя.',
+  'Календарь не врёт. Закрывай день.',
+  'Сила — это когда сделал, хотя мог не делать.',
+  'Лето короткое. Не трать его на обещания.',
+  'Твоя задача сегодня — не выпасть из ритма.',
+  'Один клик ничего не значит. Удержи и докажи.',
+  'Пусть тренировка будет короткой, но день должен быть зелёным.',
+  'Ты строишь не форму. Ты строишь характер.',
+  'Сегодняшняя дисциплина — завтрашняя уверенность.',
+  'Не дай красному квадрату испортить стрик.',
+  'Привычка любит повторение. Дай ей его.',
+  'Ты уже начал. Самая глупая ошибка — остановиться рано.',
+  'Не жди удобного времени. Это и есть время.',
+  'Если можешь открыть сайт, можешь закрыть день.',
+  'Результат любит тех, кто приходит ежедневно.',
+  'Каждый день — голос за человека, которым ты становишься.',
+  'Не проиграй день до того, как попробовал.',
+  'Три месяца пройдут в любом случае. Вопрос — каким ты выйдешь.',
+  'Сегодня не пропускаем. Точка.',
+  'Сделай тренировку до того, как мозг придумает оправдание.',
+  'Слабая версия просит паузу. Сильная закрывает день.',
+  'Ты не обязан делать много. Но ноль — не вариант.',
+  'Стрик держится не на мотивации, а на решении.',
+  'День закрыт — голова свободна.',
+  'Не оставляй тренировку на ночь. Ночь любит отмазки.',
+  'Дисциплина — это когда кнопка становится ритуалом.',
+  'Каждый зелёный квадрат — это маленькая победа.',
+  'Твой рейтинг растёт только после действия.',
+  'Не сравнивай себя. Закрывай свой день.',
+  'Плохая тренировка лучше красивой причины не тренироваться.',
+  'Сегодня ты доказываешь, что проект не игрушка.',
+  'Сделай так, чтобы календарь уважал тебя.',
+  'Не жди драйва. Драйв приходит после старта.',
+  'Сохрани стрик. Остальное приложится.',
+  'День нельзя вернуть. Его можно только закрыть сейчас.',
+  'Меньше переговоров с ленью. Больше действий.',
+  'Пусть это будет день, где ты не сдал назад.',
+  'Форма строится повторениями, а не вдохновением.',
+  'Ты либо тренируешь тело, либо тренируешь отмазки.',
+  'Осталось меньше, чем кажется. Не теряй темп.',
+  'Сегодняшний плюс один важнее идеального плана.',
+  'Победа выглядит скучно: пришёл, сделал, отметил.',
+  'Сделай тренировку, пока день не стал красным.',
+  'Твоя цель не любит пропуски.',
+  'Не сбрасывай стрик из-за одной слабой мысли.',
+  'Сейчас ты не выбираешь тренировку. Ты выбираешь направление.',
+  'Держи ритм. Это твой главный актив.',
+  'Каждый день без пропуска делает тебя опаснее.',
+  'Не надо героизма. Надо закрыть день.',
+  'Сделай сегодняшнее дело и иди дальше.',
+  'Чем меньше хочется, тем ценнее выполненный день.',
+  'Твои 90 дней собираются по одному.',
+  'Пока ты держишь стрик, челлендж жив.',
+  'Тренировка — это не вопрос желания. Это пункт дня.',
+  'Красный день не появляется сам. Его выбирают бездействием.',
+  'Закрой день так, чтобы завтра начать с уважением к себе.',
+  'Ты сильнее, когда не торгуешься с планом.',
+  'Один день. Одна тренировка. Один шаг вперёд.',
+  'Финиш строится сегодня.',
+  'Не оставляй лето пустым. Закрывай день.'
+];
 const ACHIEVEMENTS = [
   { id: 'first_workout', title: '🏅 Первая тренировка' },
   { id: 'streak_7', title: '🏅 7 дней подряд' },
@@ -38,6 +132,11 @@ let leaderboardCache = [];
 let unsubscribeProfile = null;
 let unsubscribeLeaderboard = null;
 let pendingAuthSuccess = null;
+let holdTimer = null;
+let holdFrame = null;
+let holdStartedAt = 0;
+let holdCompleted = false;
+let workoutIsSubmitting = false;
 
 const $ = (id) => document.getElementById(id);
 const authScreen = $('authScreen');
@@ -89,6 +188,18 @@ function completedAvailableDays() {
   if (today < startDate()) return 0;
   return Math.min(daysBetween(startDate(), today) + 1, TOTAL_DAYS);
 }
+function daysLeftAfterToday() {
+  const today = new Date();
+  if (today < startDate()) return TOTAL_DAYS;
+  if (today > endDate()) return 0;
+  return Math.max(0, TOTAL_DAYS - currentChallengeDay());
+}
+
+function dailyMotivation() {
+  const index = Math.max(0, currentChallengeDay() - 1) % MOTIVATION_PHRASES.length;
+  return MOTIVATION_PHRASES[index];
+}
+
 
 function numberOrNull(value) {
   if (value === '' || value === null || value === undefined) return null;
@@ -341,8 +452,72 @@ function subscribeLeaderboard() {
   });
 }
 
+function setWorkoutHoldProgress(value) {
+  const btn = $('markWorkoutBtn');
+  if (!btn) return;
+  const safeValue = Math.max(0, Math.min(100, value));
+  btn.style.setProperty('--hold-progress', safeValue.toFixed(1));
+}
+
+function resetWorkoutHold() {
+  const btn = $('markWorkoutBtn');
+  if (holdTimer) window.clearTimeout(holdTimer);
+  if (holdFrame) window.cancelAnimationFrame(holdFrame);
+  holdTimer = null;
+  holdFrame = null;
+  holdStartedAt = 0;
+  holdCompleted = false;
+  if (btn) btn.classList.remove('holding');
+  if (!btn?.classList.contains('is-done')) setWorkoutHoldProgress(0);
+}
+
+function updateWorkoutHoldFrame() {
+  if (!holdStartedAt) return;
+  const elapsed = performance.now() - holdStartedAt;
+  const progress = Math.min(100, (elapsed / HOLD_DURATION_MS) * 100);
+  setWorkoutHoldProgress(progress);
+  if (progress < 100 && !holdCompleted) {
+    holdFrame = window.requestAnimationFrame(updateWorkoutHoldFrame);
+  }
+}
+
+function startWorkoutHold(event) {
+  const btn = $('markWorkoutBtn');
+  if (!btn || btn.disabled || workoutIsSubmitting) return;
+  if (event?.type === 'pointerdown' && event.button !== undefined && event.button !== 0) return;
+
+  event?.preventDefault?.();
+  holdCompleted = false;
+  holdStartedAt = performance.now();
+  btn.classList.add('holding');
+  setWorkoutHoldProgress(0);
+
+  if (event?.pointerId !== undefined && btn.setPointerCapture) {
+    try { btn.setPointerCapture(event.pointerId); } catch (_) {}
+  }
+
+  if (holdTimer) window.clearTimeout(holdTimer);
+  if (holdFrame) window.cancelAnimationFrame(holdFrame);
+  holdFrame = window.requestAnimationFrame(updateWorkoutHoldFrame);
+  holdTimer = window.setTimeout(async () => {
+    holdCompleted = true;
+    setWorkoutHoldProgress(100);
+    btn.classList.remove('holding');
+    await markWorkout();
+  }, HOLD_DURATION_MS);
+}
+
+function cancelWorkoutHold(event) {
+  if (!holdStartedAt || holdCompleted) return;
+  event?.preventDefault?.();
+  resetWorkoutHold();
+}
+
 async function markWorkout() {
-  if (!currentUser) return;
+  if (!currentUser || workoutIsSubmitting) return;
+  workoutIsSubmitting = true;
+  const btn = $('markWorkoutBtn');
+  if (btn) btn.disabled = true;
   const today = new Date();
   const start = startDate();
   const end = endDate();
@@ -381,6 +556,10 @@ async function markWorkout() {
     const message = error.message || readableFirebaseError(error);
     setMessage($('homeMessage'), message, 'error');
     showToast(message, 'error');
+  } finally {
+    workoutIsSubmitting = false;
+    resetWorkoutHold();
+    renderHome();
   }
 }
 
@@ -425,16 +604,34 @@ function renderAll() {
 
 function renderHome() {
   const stats = calcStats(currentProfile);
-  $('summerDayText').textContent = `День ${currentChallengeDay()} из 90`;
+  const challengeDay = currentChallengeDay();
+  const left = daysLeftAfterToday();
+  $('summerDayText').textContent = `День ${challengeDay} из 90`;
   $('progressCount').textContent = stats.progress;
   $('progressFill').style.width = `${Math.min(stats.percent, 100)}%`;
   $('streakText').textContent = `${stats.streak} ${plural(stats.streak, ['день', 'дня', 'дней'])}`;
   $('workoutsText').textContent = stats.workoutsCount;
   $('percentText').textContent = `${stats.percent}%`;
+  if ($('daysLeftText')) $('daysLeftText').textContent = `${left} ${plural(left, ['день', 'дня', 'дней'])}`;
+  if ($('dailyMotivationText')) $('dailyMotivationText').textContent = dailyMotivation();
+  if ($('workoutDayLabel')) $('workoutDayLabel').textContent = `🔥 День ${challengeDay}`;
 
   const already = Boolean(currentProfile.calendar?.[toDateKey()]);
-  $('markWorkoutBtn').disabled = already;
-  if (already) setMessage($('homeMessage'), 'Сегодня тренировка уже отмечена.', 'ok');
+  const btn = $('markWorkoutBtn');
+  btn.disabled = already || workoutIsSubmitting;
+  btn.classList.toggle('is-done', already);
+
+  if (already) {
+    setWorkoutHoldProgress(100);
+    if ($('workoutActionText')) $('workoutActionText').textContent = '✅ Выполнено сегодня';
+    if ($('workoutHintText')) $('workoutHintText').textContent = 'Стрик в безопасности. Возвращайся завтра.';
+    setMessage($('homeMessage'), 'Сегодня тренировка уже отмечена.', 'ok');
+  } else {
+    setWorkoutHoldProgress(0);
+    if ($('workoutActionText')) $('workoutActionText').textContent = 'Удерживай 3 сек';
+    if ($('workoutHintText')) $('workoutHintText').textContent = 'Отметить тренировку';
+    if ($('homeMessage')?.textContent === 'Сегодня тренировка уже отмечена.') setMessage($('homeMessage'), '', '');
+  }
 }
 
 function renderCalendar() {
@@ -615,7 +812,16 @@ function readableFirebaseError(error) {
 $('registerForm').addEventListener('submit', registerUser);
 $('loginForm').addEventListener('submit', loginUser);
 $('logoutBtn').addEventListener('click', () => auth && auth.signOut());
-$('markWorkoutBtn').addEventListener('click', markWorkout);
+$('markWorkoutBtn').addEventListener('pointerdown', startWorkoutHold);
+$('markWorkoutBtn').addEventListener('pointerup', cancelWorkoutHold);
+$('markWorkoutBtn').addEventListener('pointerleave', cancelWorkoutHold);
+$('markWorkoutBtn').addEventListener('pointercancel', cancelWorkoutHold);
+$('markWorkoutBtn').addEventListener('keydown', (event) => {
+  if (event.key === ' ' || event.key === 'Enter') startWorkoutHold(event);
+});
+$('markWorkoutBtn').addEventListener('keyup', (event) => {
+  if (event.key === ' ' || event.key === 'Enter') cancelWorkoutHold(event);
+});
 $('profileForm').addEventListener('submit', saveProfile);
 $('finalForm').addEventListener('submit', saveFinal);
 setupTabs();
